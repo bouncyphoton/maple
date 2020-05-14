@@ -16,6 +16,13 @@ void Core::run() {
         m_platform.update();
         handlePlatformEvents();
 
+        // Reload renderer
+        if (m_platform.isKeyPressed(SDLK_F5)) {
+            m_renderer.destroy();
+            m_renderer.init();
+            info("Reloaded renderer");
+        }
+
         m_renderer.render();
         m_platform.swapBuffers();
     }

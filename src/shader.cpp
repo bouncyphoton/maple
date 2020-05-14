@@ -35,7 +35,7 @@ void Shader::init(const char *vertex_path, const char *fragment_path) {
         std::vector<char> log(length);
         glGetProgramInfoLog(m_programId, length, &length, log.data());
 
-        core->fatal("Failed to link program:\n" + std::string(log.data()));
+        core->warn("Failed to link program:\n" + std::string(log.data()));
     }
 }
 
@@ -65,7 +65,7 @@ u32 Shader::compileAndAttach(u32 shader_type, const char *shader_src, const char
         std::vector<char> log(length);
         glGetShaderInfoLog(shader, length, &length, log.data());
 
-        core->fatal("Failed to compile shader \"" + std::string(debug_shader_path) + "\":\n" + std::string(log.data()));
+        core->warn("Failed to compile shader \"" + std::string(debug_shader_path) + "\":\n" + std::string(log.data()));
     }
 
     // Attach if successfully

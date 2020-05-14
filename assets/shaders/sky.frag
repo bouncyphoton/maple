@@ -1,9 +1,10 @@
 #version 450 core
+layout (location = 0) out vec4 oFragColor;
 
 in VertexData {
     vec2 uv;
 } i;
 
 void main() {
-    gl_FragColor = vec4(0.8, 0.9, 1.0, 1);
+    oFragColor = vec4(0.8, 0.9, 1.0, 1);
 }
