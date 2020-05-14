@@ -3,6 +3,7 @@
 
 #include "shader.h"
 
+/// Handles all rendering
 class Renderer {
 public:
     /// Initialize renderer

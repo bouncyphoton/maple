@@ -39,6 +39,14 @@ void Platform::destroy() {
 }
 
 void Platform::update() {
+    // Change "pressed" states to "down" states
+    for (auto& keyState : m_keyStates) {
+        if (keyState.second == KEY_STATE_PRESSED) {
+            keyState.second = KEY_STATE_DOWN;
+        }
+    }
+
+    // Poll events from system
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
@@ -53,12 +61,27 @@ void Platform::update() {
                         core->state.frameHeight = event.window.data2;
                         break;
                 }
+                break;
+            case SDL_KEYDOWN:
+                if (m_keyStates[event.key.keysym.sym] == KEY_STATE_UP) {
+                    m_keyStates[event.key.keysym.sym] = KEY_STATE_PRESSED;
+                }
+                break;
+            case SDL_KEYUP:
+                m_keyStates[event.key.keysym.sym] = KEY_STATE_UP;
+                break;
         }
-
-        // TODO: process inputs
     }
 }
 
 void Platform::swapBuffers() {
     SDL_GL_SwapWindow(m_window);
+}
+
+bool Platform::isKeyPressed(u32 key) {
+    return m_keyStates[key] == KEY_STATE_PRESSED;
+}
+
+bool Platform::isKeyDown(u32 key) {
+    return m_keyStates[key] != KEY_STATE_UP;
 }

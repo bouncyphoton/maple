@@ -3,6 +3,7 @@
 
 #include "types.h"
 
+/// OpenGL shader
 class Shader {
 public:
     /// Load shaders from files
@@ -15,9 +16,9 @@ public:
     void bind();
 
 private:
-    u32 m_programId = 0;
-
     u32 compileAndAttach(u32 shader_type, const char *shader_src, const char *debug_shader_path);
+
+    u32 m_programId = 0;
 };
 
 #endif //MAPLE_SHADER_H
