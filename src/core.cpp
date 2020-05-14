@@ -1,5 +1,4 @@
 #include "core.h"
-#include <GL/gl3w.h>
 #include <cstdlib>
 #include <iostream>
 
@@ -17,9 +16,7 @@ void Core::run() {
         m_platform.update();
         handlePlatformEvents();
 
-        // TODO: move to renderer
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        m_renderer.render();
         m_platform.swapBuffers();
     }
 }
@@ -46,17 +43,18 @@ void Core::fatal(const std::string &msg) {
 
 void Core::init() {
     m_platform.init();
+    m_renderer.init();
 }
 
 void Core::cleanup() {
+    m_renderer.destroy();
     m_platform.destroy();
 }
 
 void Core::handlePlatformEvents() {
     if (state.platformEventFlags & PLATFORM_EVENT_FRAME_RESIZED) {
         state.platformEventFlags ^= PLATFORM_EVENT_FRAME_RESIZED;
-
-        // TODO: move to renderer
-        glViewport(0, 0, state.frameWidth, state.frameHeight);
+        info("Resized to " + std::to_string(state.frameWidth) + "x" + std::to_string(state.frameHeight));
+        m_renderer.resize();
     }
 }

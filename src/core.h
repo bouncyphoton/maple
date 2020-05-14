@@ -3,6 +3,7 @@
 
 #include "game_state.h"
 #include "platform.h"
+#include "renderer.h"
 #include <string>
 
 class Core {
@@ -32,6 +33,7 @@ private:
     void handlePlatformEvents();
 
     Platform m_platform;
+    Renderer m_renderer;
 };
 
 extern Core *core;
