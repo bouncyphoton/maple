@@ -2,6 +2,7 @@
 #define MAPLE_GAME_STATE_H
 
 #include "types.h"
+#include "camera.h"
 
 // Events from the platform abstraction to the application
 enum PlatformEventsEnum : u32 {
@@ -14,6 +15,8 @@ struct GameState {
 
     // Bitfield for platform events, see PlatformEventsEnum
     u32 platformEventFlags = 0;
+
+    Camera camera = {};
 };
 
 #endif //MAPLE_GAME_STATE_H

@@ -1,4 +1,5 @@
 #include "core.h"
+#include <glm/gtc/constants.hpp>
 #include <cstdlib>
 #include <iostream>
 
@@ -49,11 +50,22 @@ void Core::fatal(const std::string &msg) {
 }
 
 void Core::init() {
+    state.camera.position = glm::vec3(0, 1, 2);
+    state.camera.lookDir = glm::vec3(0, 0, -1);
+    state.camera.fovRadians = glm::half_pi<f32>();
+    state.camera.nearPlane = 0.001f;
+    state.camera.farPlane = 100.0f;
+
     m_platform.init();
     m_renderer.init();
+
+    info("Loading assets...");
+    assetManager.loadModelFromObj("../assets/CornellBox/", "CornellBox-Original.obj");
+    info("Done!");
 }
 
 void Core::cleanup() {
+    assetManager.destroy();
     m_renderer.destroy();
     m_platform.destroy();
 }

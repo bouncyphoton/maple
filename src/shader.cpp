@@ -41,6 +41,7 @@ void Shader::init(const char *vertex_path, const char *fragment_path) {
 
 void Shader::destroy() {
     glDeleteProgram(m_programId);
+    m_uniformLocations.clear();
 }
 
 void Shader::bind() {
@@ -68,8 +69,26 @@ u32 Shader::compileAndAttach(u32 shader_type, const char *shader_src, const char
         core->warn("Failed to compile shader \"" + std::string(debug_shader_path) + "\":\n" + std::string(log.data()));
     }
 
-    // Attach if successfully
+    // Attach if successfully compiled
     glAttachShader(m_programId, shader);
 
     return shader;
 }
+
+void Shader::setVec3(const std::string &name, glm::vec3 value) {
+    glUniform3f(getUniformLocation(name), value.x, value.y, value.z);
+}
+
+void Shader::setMat4(const std::string &name, glm::mat4 value) {
+    glUniformMatrix4fv(getUniformLocation(name), 1, GL_FALSE, &value[0][0]);
+}
+
+u32 Shader::getUniformLocation(const std::string &name) {
+    auto it = m_uniformLocations.find(name);
+    if (it == m_uniformLocations.end()) {
+        m_uniformLocations[name] = glGetUniformLocation(m_programId, name.c_str());
+    }
+
+    return m_uniformLocations[name];
+}
+

@@ -4,6 +4,7 @@
 #include "game_state.h"
 #include "platform.h"
 #include "renderer.h"
+#include "asset_manager.h"
 #include <string>
 
 class Core {
@@ -24,6 +25,7 @@ public:
     [[noreturn]] void fatal(const std::string &msg);
 
     GameState state;
+    AssetManager assetManager;
 
 private:
     void init();

@@ -6,8 +6,8 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 find_package(SDL2 REQUIRED)
 
-add_executable(maple third-party/gl3w/gl3w.c src/main.cpp src/core.cpp src/core.h src/platform.cpp src/platform.h src/game_state.h src/types.h src/constants.h src/renderer.cpp src/renderer.h src/shader.cpp src/shader.h src/utils.h)
+add_executable(maple third-party/gl3w/gl3w.c src/main.cpp src/core.cpp src/core.h src/platform.cpp src/platform.h src/game_state.h src/types.h src/constants.h src/renderer.cpp src/renderer.h src/shader.cpp src/shader.h src/utils.h src/asset_manager.cpp src/asset_manager.h src/model.h src/mesh.cpp src/mesh.h src/vertex.h src/camera.h)
 target_link_libraries(maple ${SDL2_LIBRARY})
-target_include_directories(maple PUBLIC ${SDL2_INCLUDE_DIR} third-party/gl3w/include)
+target_include_directories(maple PUBLIC ${SDL2_INCLUDE_DIR} third-party/gl3w/include third-party/glm third-party/tinyobjloader)
 
 # Don't forget the SDL2 DLL :)

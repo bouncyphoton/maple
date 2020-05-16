@@ -17,9 +17,11 @@ public:
 
     /// Resize renderer
     void resize();
+
 private:
     u32 m_dummyVao = 0;
     Shader m_skyShader;
+    Shader m_meshShader;
 };
 
 #endif //MAPLE_RENDERER_H
