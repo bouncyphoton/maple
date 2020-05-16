@@ -72,9 +72,15 @@ void AssetManager::loadModelFromObj(const char *directory, const char *filename)
         }
     }
 
-    // init meshes
-    for (u32 m = 0; m < numMeshes; ++m) {
-        model.meshes[m].init(meshVertices[m]);
+    // init meshes and remove meshes with 0 vertices
+    for (u32 m = 0; m < model.meshes.size();) {
+        if (meshVertices[m].empty()) {
+            model.meshes.erase(model.meshes.begin() + m);
+            meshVertices.erase(meshVertices.begin() + m);
+        } else {
+            model.meshes[m].init(meshVertices[m]);
+            ++m;
+        }
     }
 }
 
