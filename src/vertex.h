@@ -5,6 +5,7 @@
 
 struct Vertex {
     glm::vec3 position;
+    glm::vec3 normal;
 };
 
 #endif //MAPLE_VERTEX_H

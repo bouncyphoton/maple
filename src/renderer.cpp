@@ -24,7 +24,7 @@ void Renderer::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Draw sky
-    {
+    /*{
         // Set state
         glDepthMask(GL_FALSE);
         glDepthFunc(GL_ALWAYS);
@@ -37,7 +37,7 @@ void Renderer::render() {
         // Undo state changes
         glDepthFunc(GL_LESS);
         glDepthMask(GL_TRUE);
-    }
+    }*/
 
     // Draw mesh
     {
@@ -59,9 +59,13 @@ void Renderer::render() {
         std::vector<Mesh> &meshes = core->assetManager.getModel("../assets/CornellBox/CornellBox-Original.obj").meshes;
 
         for (auto &mesh : meshes) {
+            glm::mat4 modelMatrix = glm::mat4(1);
+            glm::mat4 normalMatrix = glm::transpose(glm::inverse(modelMatrix));
+
             m_meshShader.setVec3("uDiffuseColor", mesh.diffuseColor);
             m_meshShader.setVec3("uEmissionColor", mesh.emissionColor);
-            m_meshShader.setMat4("uModelMatrix", glm::mat4(1));
+            m_meshShader.setMat4("uModelMatrix", modelMatrix);
+            m_meshShader.setMat4("uNormalMatrix", normalMatrix);
 
             mesh.draw();
         }

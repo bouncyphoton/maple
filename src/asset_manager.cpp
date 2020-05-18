@@ -25,6 +25,7 @@ void AssetManager::loadModelFromObj(const char *directory, const char *filename)
     }
 
     Model &model = m_pathModelMap[objPath];
+    bool hasNormals = !attrib.normals.empty();
 
     // Append `default` material
     materials.emplace_back();
@@ -63,11 +64,37 @@ void AssetManager::loadModelFromObj(const char *directory, const char *filename)
 
                 vertices.emplace_back();
 
+                // set position
                 vertices.back().position = glm::vec3(
                         attrib.vertices[3 * idx.vertex_index + 0],
                         attrib.vertices[3 * idx.vertex_index + 1],
                         attrib.vertices[3 * idx.vertex_index + 2]
                 );
+
+                // set normal
+                if (hasNormals) {
+                    vertices.back().normal = glm::vec3(
+                            attrib.normals[3 * idx.normal_index + 0],
+                            attrib.normals[3 * idx.normal_index + 1],
+                            attrib.normals[3 * idx.normal_index + 2]
+                    );
+                }
+            }
+
+            // calculate normals if missing
+            if (!hasNormals) {
+                Vertex &v1 = vertices[vertices.size() - 3];
+                Vertex &v2 = vertices[vertices.size() - 2];
+                Vertex &v3 = vertices[vertices.size() - 1];
+
+                glm::vec3 u = v2.position - v1.position;
+                glm::vec3 v = v3.position - v1.position;
+
+                glm::vec3 normal = glm::cross(u, v);
+
+                v1.normal = normal;
+                v2.normal = normal;
+                v3.normal = normal;
             }
         }
     }
