@@ -21,6 +21,12 @@ public:
     /// Set int shader uniform
     void setInt(const std::string &name, s32 value);
 
+    /// Set float shader uniform
+    void setFloat(const std::string &name, f32 value);
+
+    /// Set vec2 shader uniform
+    void setVec2(const std::string &name, glm::vec2 value);
+
     /// Set vec3 shader uniform
     void setVec3(const std::string &name, glm::vec3 value);
 

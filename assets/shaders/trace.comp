@@ -2,9 +2,28 @@
 layout (local_size_x = 1, local_size_y = 1) in;
 layout (rgba32f, binding = 0) uniform image2D oImage;
 
+uniform vec2 uResolution;
+
+uniform struct {
+	vec3 position;
+	vec3 lowerLeft;
+	vec3 upperRight;
+} uCamera;
+
+struct Ray {
+	vec3 origin;
+	vec3 dir;
+};
+
 void main() {
 	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
-	vec4 color = vec4(0, 1, 0, 1);
+	vec2 uv = vec2(coord) / uResolution;
+
+	Ray ray;
+	ray.origin = uCamera.position;
+	ray.dir    = normalize(mix(uCamera.lowerLeft, uCamera.upperRight, vec3(uv, 0)) - ray.origin);
+
+	vec4 color = vec4(ray.dir * 0.5 + 0.5, 1);
 
 	imageStore(oImage, coord, color);
 }

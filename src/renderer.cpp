@@ -29,6 +29,7 @@ void Renderer::init() {
 }
 
 void Renderer::destroy() {
+    m_pathTraceShader.destroy();
     m_meshShader.destroy();
     m_fullscreenTextureShader.destroy();
     glDeleteTextures(1, &m_outTexture);
@@ -38,15 +39,18 @@ void Renderer::destroy() {
 void Renderer::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    bool pathTracingEnabled = (SDL_GetTicks() / 5000) % 2 == 0;
+    bool pathTracingEnabled = (u32)(SDL_GetTicks() / 1000) % 2 == 0;
+//    bool pathTracingEnabled = true;
+
+    Camera &camera = core->state.camera;
+    f32 aspectRatio = (f32) core->state.frameWidth / (f32) core->state.frameHeight;
+
+    // TODO: remove temp test code
+    camera.lookDir = glm::vec3(cos(SDL_GetTicks() / 1000.0f), 0, sin(SDL_GetTicks() / 1000.0f));
 
     // Draw mesh
     if (!pathTracingEnabled) {
         m_meshShader.bind();
-
-        Camera &camera = core->state.camera;
-        f32 aspectRatio = (f32) core->state.frameWidth / (f32) core->state.frameHeight;
-
         // set view and projection matrices
         glm::mat4 view = glm::lookAt(
                 camera.position,
@@ -74,11 +78,26 @@ void Renderer::render() {
 
     // Path trace
     if (pathTracingEnabled) {
-        // Dispatch compute shader
         m_pathTraceShader.bind();
-        m_pathTraceShader.dispatchCompute(core->state.frameWidth, core->state.frameHeight, 1);
 
-        // Wait
+        // Calculate lower left and upper right vectors, adapted from Peter Shirley's "Ray Tracing in One Weekend"
+        f32 halfHeight = tan(camera.fovRadians * 0.5f);
+        f32 halfWidth = aspectRatio * halfHeight;
+        glm::vec3 front = glm::normalize(camera.lookDir);
+        glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), front));
+        glm::vec3 up = glm::cross(front, right);
+
+        glm::vec3 lowerLeft = camera.position - halfWidth * right - halfHeight * up - front;
+        glm::vec3 upperRight = lowerLeft + halfWidth * right + halfHeight * up;
+
+        // Set shader uniforms
+        m_pathTraceShader.setVec2("uResolution", glm::vec2(core->state.frameWidth, core->state.frameHeight));
+        m_pathTraceShader.setVec3("uCamera.position", core->state.camera.position);
+        m_pathTraceShader.setVec3("uCamera.lowerLeft", lowerLeft);
+        m_pathTraceShader.setVec3("uCamera.upperRight", upperRight);
+
+        // Dispatch compute shader and wait
+        m_pathTraceShader.dispatchCompute(core->state.frameWidth, core->state.frameHeight, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
         // Draw texture to screen via fullscreen texture shader

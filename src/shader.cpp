@@ -81,6 +81,14 @@ void Shader::setInt(const std::string &name, s32 value) {
     glUniform1i(getUniformLocation(name), value);
 }
 
+void Shader::setFloat(const std::string &name, f32 value) {
+    glUniform1f(getUniformLocation(name), value);
+}
+
+void Shader::setVec2(const std::string &name, glm::vec2 value) {
+    glUniform2f(getUniformLocation(name), value.x, value.y);
+}
+
 void Shader::setVec3(const std::string &name, glm::vec3 value) {
     glUniform3f(getUniformLocation(name), value.x, value.y, value.z);
 }
