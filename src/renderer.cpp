@@ -7,40 +7,41 @@ void Renderer::init() {
     // Set default state
     glEnable(GL_DEPTH_TEST);
 
-    // Initialize members
+    // Initialize dummy vao
     glGenVertexArrays(1, &m_dummyVao);
     if (m_dummyVao == 0) { core->fatal("Failed to generate dummy vao"); }
-    m_skyShader.init("../assets/shaders/fullscreen.vert", "../assets/shaders/sky.frag");
+
+    // Initialize output texture
+    // TODO: write wrapper for opengl texture
+    glGenTextures(1, &m_outTexture);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, m_outTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, core->state.frameWidth, core->state.frameHeight,
+                 0, GL_RGBA, GL_FLOAT, nullptr);
+    glBindImageTexture(0, m_outTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+    // Initialize shaders
+    m_fullscreenTextureShader.init("../assets/shaders/fullscreen.vert", "../assets/shaders/fullscreen.frag");
     m_meshShader.init("../assets/shaders/mesh.vert", "../assets/shaders/mesh.frag");
+    m_pathTraceShader.init("../assets/shaders/trace.comp");
 }
 
 void Renderer::destroy() {
     m_meshShader.destroy();
-    m_skyShader.destroy();
+    m_fullscreenTextureShader.destroy();
+    glDeleteTextures(1, &m_outTexture);
     glDeleteVertexArrays(1, &m_dummyVao);
 }
 
 void Renderer::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Draw sky
-    /*{
-        // Set state
-        glDepthMask(GL_FALSE);
-        glDepthFunc(GL_ALWAYS);
-
-        // Draw with dummy vertex array
-        m_skyShader.bind();
-        glBindVertexArray(m_dummyVao);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-        // Undo state changes
-        glDepthFunc(GL_LESS);
-        glDepthMask(GL_TRUE);
-    }*/
+    bool pathTracingEnabled = (SDL_GetTicks() / 5000) % 2 == 0;
 
     // Draw mesh
-    {
+    if (!pathTracingEnabled) {
         m_meshShader.bind();
 
         Camera &camera = core->state.camera;
@@ -70,8 +71,43 @@ void Renderer::render() {
             mesh.draw();
         }
     }
+
+    // Path trace
+    if (pathTracingEnabled) {
+        // Dispatch compute shader
+        m_pathTraceShader.bind();
+        m_pathTraceShader.dispatchCompute(core->state.frameWidth, core->state.frameHeight, 1);
+
+        // Wait
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        // Draw texture to screen via fullscreen texture shader
+
+        // Set state
+        glDepthMask(GL_FALSE);
+        glDepthFunc(GL_ALWAYS);
+
+        // Draw with dummy vertex array
+        m_fullscreenTextureShader.bind();
+        m_fullscreenTextureShader.setInt("uTexture", 0);
+        glBindVertexArray(m_dummyVao);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+        // Undo state changes
+        glDepthFunc(GL_LESS);
+        glDepthMask(GL_TRUE);
+    }
 }
 
 void Renderer::resize() {
+    // Resize viewport
     glViewport(0, 0, core->state.frameWidth, core->state.frameHeight);
+
+    // Resize output texture, it's ok that old pixel data is wiped
+    s32 previouslyBoundTexture;
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &previouslyBoundTexture);
+    glBindTexture(GL_TEXTURE_2D, m_outTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, core->state.frameWidth, core->state.frameHeight,
+                 0, GL_RGBA, GL_FLOAT, nullptr);
+    glBindTexture(GL_TEXTURE_2D, previouslyBoundTexture);
 }

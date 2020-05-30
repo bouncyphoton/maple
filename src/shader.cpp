@@ -4,6 +4,8 @@
 #include <GL/gl3w.h>
 #include <vector>
 
+// TODO: clean up some repetitive code
+
 void Shader::init(const char *vertex_path, const char *fragment_path) {
     u32 vert = 0, frag = 0;
     m_programId = glCreateProgram();
@@ -14,7 +16,7 @@ void Shader::init(const char *vertex_path, const char *fragment_path) {
     std::string vertexSrc = utils::load_file_to_string(vertex_path);
     std::string fragmentSrc = utils::load_file_to_string(fragment_path);
 
-    // Create and compile vertex shader
+    // Create and compile vertex and fragment shader
     vert = compileAndAttach(GL_VERTEX_SHADER, vertexSrc.c_str(), vertex_path);
     frag = compileAndAttach(GL_FRAGMENT_SHADER, fragmentSrc.c_str(), fragment_path);
 
@@ -75,6 +77,10 @@ u32 Shader::compileAndAttach(u32 shader_type, const char *shader_src, const char
     return shader;
 }
 
+void Shader::setInt(const std::string &name, s32 value) {
+    glUniform1i(getUniformLocation(name), value);
+}
+
 void Shader::setVec3(const std::string &name, glm::vec3 value) {
     glUniform3f(getUniformLocation(name), value.x, value.y, value.z);
 }
@@ -92,3 +98,38 @@ u32 Shader::getUniformLocation(const std::string &name) {
     return m_uniformLocations[name];
 }
 
+void ComputeShader::init(const char *compute_path) {
+    u32 shader = 0;
+    m_programId = glCreateProgram();
+    if (m_programId == 0) {
+        core->fatal("Failed to create shader program");
+    }
+
+    // Get shader source as string
+    std::string shaderSrc = utils::load_file_to_string(compute_path);
+
+    // Create and compile compute shader
+    shader = compileAndAttach(GL_COMPUTE_SHADER, shaderSrc.c_str(), compute_path);
+
+    // Link program
+    glLinkProgram(m_programId);
+    glDetachShader(m_programId, shader);
+    glDeleteShader(shader);
+
+    // Check link status
+    s32 success;
+    glGetProgramiv(m_programId, GL_LINK_STATUS, &success);
+    if (success == GL_FALSE) {
+        GLint length = 0;
+        glGetProgramiv(m_programId, GL_INFO_LOG_LENGTH, &length);
+
+        std::vector<char> log(length);
+        glGetProgramInfoLog(m_programId, length, &length, log.data());
+
+        core->warn("Failed to link program:\n" + std::string(log.data()));
+    }
+}
+
+void ComputeShader::dispatchCompute(u32 num_groups_x, u32 num_groups_y, u32 num_groups_z) {
+    glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+}

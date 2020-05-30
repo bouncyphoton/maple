@@ -20,8 +20,10 @@ public:
 
 private:
     u32 m_dummyVao = 0;
-    Shader m_skyShader;
+    u32 m_outTexture = 0;
+    Shader m_fullscreenTextureShader;
     Shader m_meshShader;
+    ComputeShader m_pathTraceShader;
 };
 
 #endif //MAPLE_RENDERER_H

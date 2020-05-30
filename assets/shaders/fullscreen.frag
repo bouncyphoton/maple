@@ -5,6 +5,8 @@ in VertexData {
     vec2 uv;
 } i;
 
+uniform sampler2D uTexture;
+
 void main() {
-    oFragColor = vec4(0.8, 0.9, 1.0, 1);
+    oFragColor = texture(uTexture, i.uv);
 }
