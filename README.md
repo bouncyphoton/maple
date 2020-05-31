@@ -1,6 +1,6 @@
 # :maple_leaf: maple
 
-Dynamic real-time global illumination testing
+Compute shader path tracer
 
 *Why "maple"? I have no good project names*
 
