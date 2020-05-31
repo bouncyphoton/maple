@@ -15,15 +15,113 @@ struct Ray {
 	vec3 dir;
 };
 
+struct Material {
+	vec3 diffuse;
+	vec3 emissive;
+};
+
+struct IntersectionInfo {
+	float t;
+	vec3 normal;
+	Material mat;
+};
+
+uint rngState = 0;
+
+// https://www.burtleburtle.net/bob/hash/integer.html
+uint wangHash() {
+    rngState = (rngState ^ 61u) ^ (rngState >> 16);
+    rngState = rngState + (rngState << 3);
+    rngState = rngState ^ (rngState >> 4);
+    rngState = rngState * 0x27d4eb2d;
+    rngState = rngState ^ (rngState >> 15);
+    return rngState;
+}
+
+// Returns a float in range [0, 1)
+float random() {
+	return float(wangHash()) / 4294967296.0;
+}
+
+// NOTE: very very small chance this is a zero vector
+vec3 randomUnitVector() {
+	return normalize(vec3(random() * 2 - 1, random() * 2 - 1, random() * 2 - 1));
+}
+
+IntersectionInfo intersectSphere(Ray ray, vec3 center, float radius) {
+	IntersectionInfo isect;
+
+	vec3 oc = ray.origin - center;
+	float a = dot(ray.dir, ray.dir);
+	float b = 2 * dot(oc, ray.dir);
+	float c = dot(oc, oc) - radius * radius;
+	float discriminant = b * b - 4 * a * c;
+
+	if (discriminant > 0) {
+		isect.t = (-b - sqrt(discriminant)) / (2 * a);
+		isect.normal = ((isect.t * ray.dir + ray.origin) - center) / radius;
+		isect.mat.diffuse = vec3(1);
+		isect.mat.emissive = vec3(0);
+
+		// Temp emissive setting
+		if (isect.normal.y < 0) {
+			isect.mat.emissive = vec3(1, 0.6, 0);
+		}
+	} else {
+		isect.t = -1;
+	}
+
+	return isect;
+}
+
+IntersectionInfo intersect(Ray ray) {
+	IntersectionInfo ret;
+
+	// temp scene intersection
+
+	ret = intersectSphere(ray, vec3(0, 1, -4), 1);
+
+	IntersectionInfo i = intersectSphere(ray, vec3(0, -100, -4), 100);
+	if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
+		ret = i;
+	}
+
+	return ret;
+}
+
+vec4 trace(Ray ray) {
+	// Right now this lights up pixels with paths that don't bounce out into space, makes a pretty picture c:
+
+	vec3 color = vec3(1);
+
+	for (int i = 0; i < 2; ++i) {
+		IntersectionInfo isect = intersect(ray);
+
+		if (isect.t < 0) {
+			return vec4(0, 0, 0, 1);
+		}
+
+		vec3 diffuse = isect.mat.diffuse;
+		vec3 emissive = isect.mat.emissive;
+
+		// New ray
+		ray.origin += ray.dir * isect.t;
+		ray.dir = normalize(isect.normal + randomUnitVector());
+	}
+
+	return vec4(color, 1);
+}
+
 void main() {
 	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
 	vec2 uv = vec2(coord) / uResolution;
+	rngState = int(coord.y * uResolution.x + coord.x);
 
 	Ray ray;
 	ray.origin = uCamera.position;
 	ray.dir    = normalize(mix(uCamera.lowerLeft, uCamera.upperRight, vec3(uv, 0)) - ray.origin);
 
-	vec4 color = vec4(ray.dir * 0.5 + 0.5, 1);
+	vec4 color = trace(ray);
 
 	imageStore(oImage, coord, color);
 }

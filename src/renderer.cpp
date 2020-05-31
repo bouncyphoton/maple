@@ -45,9 +45,6 @@ void Renderer::render() {
     Camera &camera = core->state.camera;
     f32 aspectRatio = (f32) core->state.frameWidth / (f32) core->state.frameHeight;
 
-    // TODO: remove temp test code
-    camera.lookDir = glm::vec3(cos(SDL_GetTicks() / 1000.0f), 0, sin(SDL_GetTicks() / 1000.0f));
-
     // Draw mesh
     if (!pathTracingEnabled) {
         m_meshShader.bind();
@@ -67,8 +64,8 @@ void Renderer::render() {
             glm::mat4 modelMatrix = glm::mat4(1);
             glm::mat4 normalMatrix = glm::transpose(glm::inverse(modelMatrix));
 
-            m_meshShader.setVec3("uDiffuseColor", mesh.diffuseColor);
-            m_meshShader.setVec3("uEmissionColor", mesh.emissionColor);
+            m_meshShader.setVec3("uDiffuseColor", mesh.material.diffuseColor);
+            m_meshShader.setVec3("uEmissionColor", mesh.material.emissiveColor);
             m_meshShader.setMat4("uModelMatrix", modelMatrix);
             m_meshShader.setMat4("uNormalMatrix", normalMatrix);
 

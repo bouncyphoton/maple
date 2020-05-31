@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "vertex.h"
+#include "material.h"
 #include <vector>
 
 class Mesh {
@@ -13,8 +14,7 @@ public:
 
     void draw();
 
-    glm::vec3 diffuseColor;
-    glm::vec3 emissionColor;
+    Material material;
 
 private:
     u32 m_vao, m_vbo;

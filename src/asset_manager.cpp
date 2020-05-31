@@ -44,13 +44,13 @@ void AssetManager::loadModelFromObj(const char *directory, const char *filename)
                 materialId = materials.size() - 1;
             }
 
-            model.meshes[materialId].diffuseColor = glm::vec3(
+            model.meshes[materialId].material.diffuseColor = glm::vec3(
                     materials[materialId].diffuse[0],
                     materials[materialId].diffuse[1],
                     materials[materialId].diffuse[2]
             );
 
-            model.meshes[materialId].emissionColor = glm::vec3(
+            model.meshes[materialId].material.emissiveColor = glm::vec3(
                     materials[materialId].emission[0],
                     materials[materialId].emission[1],
                     materials[materialId].emission[2]
