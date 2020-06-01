@@ -39,8 +39,8 @@ void Renderer::destroy() {
 void Renderer::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    bool pathTracingEnabled = (u32)(SDL_GetTicks() / 1000) % 2 == 0;
-//    bool pathTracingEnabled = true;
+//    bool pathTracingEnabled = (u32)(SDL_GetTicks() / 1000) % 2 == 0;
+    bool pathTracingEnabled = true;
 
     Camera &camera = core->state.camera;
     f32 aspectRatio = (f32) core->state.frameWidth / (f32) core->state.frameHeight;

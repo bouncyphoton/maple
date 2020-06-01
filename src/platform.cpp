@@ -30,6 +30,11 @@ void Platform::init() {
     if (gl3wInit()) {
         core->fatal("Failed to initialize gl3w");
     }
+
+    // Disable v-sync
+    SDL_GL_SetSwapInterval(0);
+
+    m_lastUpdate = std::chrono::system_clock::now();
 }
 
 void Platform::destroy() {
@@ -39,6 +44,11 @@ void Platform::destroy() {
 }
 
 void Platform::update() {
+    // Update frame time
+    std::chrono::system_clock::time_point prev = m_lastUpdate;
+    m_lastUpdate = std::chrono::system_clock::now();
+    m_frameTime = std::chrono::duration_cast<std::chrono::microseconds>(m_lastUpdate - prev).count() / 1000.0f;
+
     // Change "pressed" states to "down" states
     for (auto& keyState : m_keyStates) {
         if (keyState.second == KEY_STATE_PRESSED) {
@@ -84,4 +94,8 @@ bool Platform::isKeyPressed(u32 key) {
 
 bool Platform::isKeyDown(u32 key) {
     return m_keyStates[key] != KEY_STATE_UP;
+}
+
+f32 Platform::getFrameTime() {
+    return m_frameTime;
 }

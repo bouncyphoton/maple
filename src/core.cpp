@@ -13,6 +13,9 @@ void Core::run() {
 
     info("Initialized successfully");
 
+    u32 numFrames = 0;
+    f32 time = 0;
+
     while (true) {
         m_platform.update();
         handlePlatformEvents();
@@ -26,6 +29,16 @@ void Core::run() {
 
         m_renderer.render();
         m_platform.swapBuffers();
+
+        // performance
+        ++numFrames;
+        time += m_platform.getFrameTime();
+
+        if (time > 1000) {
+            info("average frametime: " + std::to_string(time / numFrames));
+            time = 0;
+            numFrames = 0;
+        }
     }
 }
 
