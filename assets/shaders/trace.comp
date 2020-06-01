@@ -10,6 +10,8 @@ uniform struct {
 	vec3 upperRight;
 } uCamera;
 
+uniform int uFrameNumber;
+
 struct Ray {
 	vec3 origin;
 	vec3 dir;
@@ -130,7 +132,7 @@ vec3 trace(Ray ray) {
 	vec3 color = vec3(0);
 	vec3 throughput = vec3(1);
 
-	const uint numBounces = 3;
+	const uint numBounces = 5;
 	for (int i = 0; i < numBounces; ++i) {
 		IntersectionInfo isect = intersect(ray);
 
@@ -157,19 +159,17 @@ vec3 trace(Ray ray) {
 void main() {
 	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
 	vec2 uv = vec2(coord) / uResolution;
-	rngState = int(coord.y * uResolution.x + coord.x);
+	// TODO: better random numbers
+	rngState = uint(uint(coord.x) * 1973u + uint(coord.y) * 9277u + uint(uFrameNumber) * 26699u) | 1u;
 
 	Ray ray;
 	ray.origin = uCamera.position;
 	ray.dir    = normalize(mix(uCamera.lowerLeft, uCamera.upperRight, vec3(uv, 0)) - ray.origin);
 
-	vec3 color = vec3(0);
+	vec3 color = pow(imageLoad(oImage, coord).rgb, vec3(2.2)) * uFrameNumber;
 
-	const uint numSamples = 1;
-	for (int i = 0; i < numSamples; ++i) {
-		color += trace(ray);
-	}
-	color /= float(numSamples);
+	color += trace(ray);
+	color /= float(uFrameNumber + 1);
 
-	imageStore(oImage, coord, vec4(color, 1));
+	imageStore(oImage, coord, vec4(pow(color, vec3(1/2.2)), 1));
 }

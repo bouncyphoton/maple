@@ -20,7 +20,10 @@ void Renderer::init() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, core->state.frameWidth, core->state.frameHeight,
                  0, GL_RGBA, GL_FLOAT, nullptr);
-    glBindImageTexture(0, m_outTexture, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+    glBindImageTexture(0, m_outTexture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+    // Set/reset frame number
+    m_frameNumber = 0;
 
     // Initialize shaders
     m_fullscreenTextureShader.init("../assets/shaders/fullscreen.vert", "../assets/shaders/fullscreen.frag");
@@ -92,6 +95,12 @@ void Renderer::render() {
         m_pathTraceShader.setVec3("uCamera.position", core->state.camera.position);
         m_pathTraceShader.setVec3("uCamera.lowerLeft", lowerLeft);
         m_pathTraceShader.setVec3("uCamera.upperRight", upperRight);
+        m_pathTraceShader.setInt("uFrameNumber", m_frameNumber);
+        ++m_frameNumber;
+
+        if (m_frameNumber % 100 == 0) {
+            core->info(std::to_string(m_frameNumber) + "spp");
+        }
 
         // Dispatch compute shader and wait
         m_pathTraceShader.dispatchCompute(core->state.frameWidth, core->state.frameHeight, 1);
@@ -126,4 +135,5 @@ void Renderer::resize() {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, core->state.frameWidth, core->state.frameHeight,
                  0, GL_RGBA, GL_FLOAT, nullptr);
     glBindTexture(GL_TEXTURE_2D, previouslyBoundTexture);
+    m_frameNumber = 0;
 }
