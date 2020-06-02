@@ -5,27 +5,27 @@ layout (rgba32f, binding = 0) uniform image2D oImage;
 uniform vec2 uResolution;
 
 uniform struct {
-	vec3 position;
-	vec3 lowerLeft;
-	vec3 upperRight;
+    vec3 position;
+    vec3 lowerLeft;
+    vec3 upperRight;
 } uCamera;
 
 uniform int uFrameNumber;
 
 struct Ray {
-	vec3 origin;
-	vec3 dir;
+    vec3 origin;
+    vec3 dir;
 };
 
 struct Material {
-	vec3 diffuse;
-	vec3 emissive;
+    vec3 diffuse;
+    vec3 emissive;
 };
 
 struct IntersectionInfo {
-	float t;
-	vec3 normal;
-	Material mat;
+    float t;
+    vec3 normal;
+    Material mat;
 };
 
 uint rngState = 0;
@@ -42,134 +42,172 @@ uint wangHash() {
 
 // Returns a float in range [0, 1)
 float random() {
-	return float(wangHash()) / 4294967296.0;
+    return float(wangHash()) / 4294967296.0;
 }
 
 // NOTE: very very small chance this is a zero vector
 vec3 randomUnitVector() {
-	return normalize(vec3(random() * 2 - 1, random() * 2 - 1, random() * 2 - 1));
+    return normalize(vec3(random() * 2 - 1, random() * 2 - 1, random() * 2 - 1));
+}
+
+// https://en.wikipedia.org/wiki/SRGB
+float srgbToLinearComponent(float x) {
+	if (x <= 0.04045) return x / 12.92;
+	return pow((x + 0.055) / 1.055, 2.4);
+}
+
+vec3 srgbToLinear(vec3 x) {
+	return vec3(
+		srgbToLinearComponent(x.x),
+		srgbToLinearComponent(x.y),
+		srgbToLinearComponent(x.z)
+	);
+}
+
+float linearToSrgbComponent(float x) {
+    if (x <= 0.0031308) return 12.92 * x;
+    return 1.055 * pow(x, 1/2.4) - 0.055;
+}
+
+vec3 linearToSrgb(vec3 x) {
+    return vec3(
+	    linearToSrgbComponent(x.x),
+    	linearToSrgbComponent(x.y),
+    	linearToSrgbComponent(x.z)
+    );
 }
 
 IntersectionInfo intersectSphere(Ray ray, vec3 center, float radius, vec3 diffuse, vec3 emissive) {
-	IntersectionInfo isect;
+    IntersectionInfo isect;
 
-	vec3 oc = ray.origin - center;
-	float a = dot(ray.dir, ray.dir);
-	float b = 2 * dot(oc, ray.dir);
-	float c = dot(oc, oc) - radius * radius;
-	float discriminant = b * b - 4 * a * c;
+    vec3 oc = ray.origin - center;
+    float a = dot(ray.dir, ray.dir);
+    float b = 2 * dot(oc, ray.dir);
+    float c = dot(oc, oc) - radius * radius;
+    float discriminant = b * b - 4 * a * c;
 
-	if (discriminant > 0) {
-		isect.t = (-b - sqrt(discriminant)) / (2 * a);
-		isect.normal = ((isect.t * ray.dir + ray.origin) - center) / radius;
-		isect.mat.diffuse = diffuse;
-		isect.mat.emissive = emissive;
-	} else {
-		isect.t = -1;
-	}
+    if (discriminant > 0) {
+        isect.t = (-b - sqrt(discriminant)) / (2 * a);
+        isect.normal = ((isect.t * ray.dir + ray.origin) - center) / radius;
+        isect.mat.diffuse = diffuse;
+        isect.mat.emissive = emissive;
+    } else {
+        isect.t = -1;
+    }
 
-	return isect;
+    return isect;
 }
 
 IntersectionInfo intersect(Ray ray) {
-	IntersectionInfo ret;
+    IntersectionInfo ret;
 
-	// temp scene intersection
+    // temp scene intersection
 
-	vec3 white = vec3(0.725, 0.71, 0.68);
-	vec3 red = vec3(0.63, 0.065, 0.05);
-	vec3 green = vec3(0.14, 0.45, 0.091);
+    vec3 white = vec3(0.725, 0.71, 0.68);
+    vec3 red = vec3(0.63, 0.065, 0.05);
+    vec3 green = vec3(0.14, 0.45, 0.091);
 
-	// floor
-	ret = intersectSphere(ray, vec3(-0, -100, 0), 100, white, vec3(0));
+    // floor
+    ret = intersectSphere(ray, vec3(-0, -100, 0), 100, white, vec3(0));
 
-	// floating ball light
-	IntersectionInfo i = intersectSphere(ray, vec3(0, 2, 0), 0.25, vec3(0.78), vec3(17, 12, 4));
-	if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-		ret = i;
-	}
+    // floating ball light
+    IntersectionInfo i = intersectSphere(ray, vec3(0, 2, 0), 0.25, vec3(0.78), vec3(17, 12, 4));
+    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
+        ret = i;
+    }
 
-	// left red "wall" sphere
-	i = intersectSphere(ray, vec3(101, 1, 0), 100, red, vec3(0));
-	if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-		ret = i;
-	}
+    // left red "wall" sphere
+    i = intersectSphere(ray, vec3(101, 1, 0), 100, red, vec3(0));
+    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
+        ret = i;
+    }
 
-	// right green "wall" sphere
-	i = intersectSphere(ray, vec3(-101, 1, 0), 100, green, vec3(0));
-	if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-		ret = i;
-	}
+    // right green "wall" sphere
+    i = intersectSphere(ray, vec3(-101, 1, 0), 100, green, vec3(0));
+    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
+        ret = i;
+    }
 
-	// back white "wall" sphere
-	i = intersectSphere(ray, vec3(0, 1, -101), 100, white, vec3(0));
-	if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-		ret = i;
-	}
+    // back white "wall" sphere
+    i = intersectSphere(ray, vec3(0, 1, -101), 100, white, vec3(0));
+    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
+        ret = i;
+    }
 
-	// white ceiling sphere
-	i = intersectSphere(ray, vec3(0, 102, 0), 100, white, vec3(0));
-	if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-		ret = i;
-	}
+    // white ceiling sphere
+    i = intersectSphere(ray, vec3(0, 102, 0), 100, white, vec3(0));
+    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
+        ret = i;
+    }
 
-	// right diffuse white sphere
-	i = intersectSphere(ray, vec3(-0.3, 0.25, 0.5), 0.25, white, vec3(0));
-	if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-		ret = i;
-	}
+    // right diffuse white sphere
+    i = intersectSphere(ray, vec3(-0.3, 0.25, 0.5), 0.25, white, vec3(0));
+    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
+        ret = i;
+    }
 
-	// left diffuse white sphere
-	i = intersectSphere(ray, vec3(0.3, 0.5, -0.3), 0.5, white, vec3(0));
-	if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-		ret = i;
-	}
+    // left diffuse white sphere
+    i = intersectSphere(ray, vec3(0.3, 0.5, -0.3), 0.5, white, vec3(0));
+    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
+        ret = i;
+    }
 
-	return ret;
+    return ret;
 }
 
 vec3 trace(Ray ray) {
-	vec3 color = vec3(0);
-	vec3 throughput = vec3(1);
+    vec3 color = vec3(0);
+    vec3 throughput = vec3(1);
 
-	const uint numBounces = 5;
-	for (int i = 0; i < numBounces; ++i) {
-		IntersectionInfo isect = intersect(ray);
+    const uint numBounces = 5;
+    for (int i = 0; i < numBounces; ++i) {
+        IntersectionInfo isect = intersect(ray);
 
-		if (isect.t < 0) {
-			return vec3(0);
-		}
+        if (isect.t < 0) {
+            return vec3(0);
+        }
 
-		vec3 diffuse = isect.mat.diffuse;
-		vec3 emissive = isect.mat.emissive;
+        vec3 diffuse = isect.mat.diffuse;
+        vec3 emissive = isect.mat.emissive;
 
-		// New ray
-		ray.origin += ray.dir * isect.t;
-		ray.dir = normalize(isect.normal + randomUnitVector());
+        // New ray
+        ray.origin += ray.dir * isect.t;
+        ray.dir = normalize(isect.normal + randomUnitVector());
 
-		// TODO: do math correctly
+        // TODO: do math correctly
 
-		color += emissive * throughput;
-		throughput *= diffuse;
-	}
+        color += emissive * throughput;
+        throughput *= diffuse;
+    }
 
-	return color;
+    return color;
 }
 
 void main() {
-	ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
-	vec2 uv = vec2(coord) / uResolution;
-	// TODO: better random numbers
-	rngState = uint(uint(coord.x) * 1973u + uint(coord.y) * 9277u + uint(uFrameNumber) * 26699u) | 1u;
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
 
-	Ray ray;
-	ray.origin = uCamera.position;
-	ray.dir    = normalize(mix(uCamera.lowerLeft, uCamera.upperRight, vec3(uv, 0)) - ray.origin);
+    // seed rng
+    // TODO: better random numbers
+    rngState = uint(uint(coord.x) * 1973u + uint(coord.y) * 9277u + uint(uFrameNumber) * 26699u) | 1u;
 
-	vec3 color = pow(imageLoad(oImage, coord).rgb, vec3(2.2)) * uFrameNumber;
+    // anti-aliasing jitter
+    vec2 jitter = vec2(random(), random());
+    vec2 uv = vec2(coord + jitter) / uResolution;
 
-	color += trace(ray);
-	color /= float(uFrameNumber + 1);
+    // generate ray
+    Ray ray;
+    ray.origin = uCamera.position;
+    ray.dir    = normalize(mix(uCamera.lowerLeft, uCamera.upperRight, vec3(uv, 0)) - ray.origin);
 
-	imageStore(oImage, coord, vec4(pow(color, vec3(1/2.2)), 1));
+    // get color from previous frame, change color space to linear
+    vec3 color = srgbToLinear(imageLoad(oImage, coord).rgb) * uFrameNumber;
+
+    // trace
+    color += trace(ray);
+
+    // average
+    color /= float(uFrameNumber + 1);
+
+    // output
+    imageStore(oImage, coord, vec4(linearToSrgb(color), 1));
 }
