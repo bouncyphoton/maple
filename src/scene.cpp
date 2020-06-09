@@ -26,17 +26,50 @@ void Scene::load(const char *directory, const char *filename) {
 
     bool hasNormals = !attrib.normals.empty();
 
+    // Append `default` material
+    materials.emplace_back();
+
+    u32 numMeshes = materials.size();
+    std::vector<std::vector<Vertex>> meshVertices(numMeshes);
+    m_meshes.resize(numMeshes);
+    m_materials.resize(numMeshes);
+
+    for (u32 i = 0; i < numMeshes; ++i) {
+        m_meshes[i].materialId = i;
+        m_materials[i].diffuse = glm::vec4(
+                materials[i].diffuse[0],
+                materials[i].diffuse[1],
+                materials[i].diffuse[2],
+                0
+        );
+        m_materials[i].emissive = glm::vec4(
+                materials[i].emission[0],
+                materials[i].emission[1],
+                materials[i].emission[2],
+                0
+        );
+    }
+
     for (auto &shape : shapes) {
         // iterate over faces
         for (u32 f = 0; f < shape.mesh.indices.size() / 3; ++f) {
+            u32 materialId = shape.mesh.material_ids[f];
+
+            // fix invalid material ids
+            if (materialId < 0 || materialId >= materials.size()) {
+                materialId = materials.size() - 1;
+            }
+
+            std::vector<Vertex> &vertices = meshVertices[materialId];
+
             // add vertices
             for (u32 v = 0; v < 3; ++v) {
                 tinyobj::index_t idx = shape.mesh.indices[3 * f + v];
 
-                m_vertices.emplace_back();
+                vertices.emplace_back();
 
                 // set position
-                m_vertices.back().position = glm::vec4(
+                vertices.back().position = glm::vec4(
                         attrib.vertices[3 * idx.vertex_index + 0],
                         attrib.vertices[3 * idx.vertex_index + 1],
                         attrib.vertices[3 * idx.vertex_index + 2],
@@ -45,7 +78,7 @@ void Scene::load(const char *directory, const char *filename) {
 
                 // set normal
                 if (hasNormals) {
-                    m_vertices.back().normal = glm::vec4(
+                    vertices.back().normal = glm::vec4(
                             attrib.normals[3 * idx.normal_index + 0],
                             attrib.normals[3 * idx.normal_index + 1],
                             attrib.normals[3 * idx.normal_index + 2],
@@ -56,14 +89,14 @@ void Scene::load(const char *directory, const char *filename) {
 
             // calculate normals if missing
             if (!hasNormals) {
-                Vertex &v1 = m_vertices[m_vertices.size() - 3];
-                Vertex &v2 = m_vertices[m_vertices.size() - 2];
-                Vertex &v3 = m_vertices[m_vertices.size() - 1];
+                Vertex &v1 = vertices[vertices.size() - 3];
+                Vertex &v2 = vertices[vertices.size() - 2];
+                Vertex &v3 = vertices[vertices.size() - 1];
 
                 glm::vec3 u = v2.position - v1.position;
                 glm::vec3 v = v3.position - v1.position;
 
-                glm::vec4 normal = glm::vec4(glm::normalize(glm::cross(u, v)), 0);
+                glm::vec4 normal = glm::vec4(glm::cross(u, v), 0);
 
                 v1.normal = normal;
                 v2.normal = normal;
@@ -72,21 +105,52 @@ void Scene::load(const char *directory, const char *filename) {
         }
     }
 
-    glGenBuffers(1, &m_ssbo);
-    if (m_ssbo == 0) {
-        core->fatal("Failed to generate ssbo");
+    for (u32 i = 0; i < numMeshes; ++i) {
+        m_meshes[i].vertexOffset = m_vertices.size();
+        m_meshes[i].numVertices = meshVertices[i].size();
+        m_vertices.insert(m_vertices.end(), meshVertices[i].begin(), meshVertices[i].end());
     }
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_ssbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(m_vertices[0]) * m_vertices.size(), m_vertices.data(), GL_STATIC_READ);
+
+    // Generate vertex buffer
+    glGenBuffers(1, &m_vertexBuffer);
+    if (m_vertexBuffer == 0) {
+        core->fatal("Failed to generate vertex buffer");
+    }
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_vertexBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(m_vertices[0]) * m_vertices.size(), m_vertices.data(),
+                 GL_STATIC_READ);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    // Generate material buffer
+    glGenBuffers(1, &m_materialBuffer);
+    if (m_materialBuffer == 0) {
+        core->fatal("Failed to generate material buffer");
+    }
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_materialBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(m_materials[0]) * m_materials.size(), m_materials.data(),
+                 GL_STATIC_READ);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    // Generate mesh buffer
+    glGenBuffers(1, &m_meshBuffer);
+    if (m_meshBuffer == 0) {
+        core->fatal("Failed to generate mesh buffer");
+    }
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, m_meshBuffer);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(m_meshes[0]) * m_meshes.size(), m_meshes.data(), GL_STATIC_READ);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
     core->info("Loaded obj with " + std::to_string(m_vertices.size()) + " vertices");
 }
 
 void Scene::destroy() {
-    glDeleteBuffers(1, &m_ssbo);
+    glDeleteBuffers(1, &m_vertexBuffer);
+    glDeleteBuffers(1, &m_materialBuffer);
+    glDeleteBuffers(1, &m_meshBuffer);
 }
 
-void Scene::bindSsbo(u32 binding) {
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, m_ssbo);
+void Scene::bind() {
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, m_vertexBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, m_materialBuffer);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, m_meshBuffer);
 }

@@ -104,7 +104,7 @@ void Renderer::render() {
 
         // Set scene data
         // TODO: Don't do this every frame
-        core->state.scene.bindSsbo(1);
+        core->state.scene.bind();
 
         // Dispatch compute shader and wait
         m_pathTraceShader.dispatchCompute(core->state.frameWidth, core->state.frameHeight, 1);

@@ -3,6 +3,8 @@
 
 #include "types.h"
 #include "vertex.h"
+#include "material.h"
+#include "mesh.h"
 #include <vector>
 
 class Scene {
@@ -14,11 +16,15 @@ public:
     void destroy();
 
     /// Bind scene for path-tracing
-    void bindSsbo(u32 binding);
+    void bind();
 
 private:
-    u32 m_ssbo;
+    u32 m_vertexBuffer;
+    u32 m_materialBuffer;
+    u32 m_meshBuffer;
     std::vector<Vertex> m_vertices;
+    std::vector<Material> m_materials;
+    std::vector<Mesh> m_meshes;
 };
 
 #endif //MAPLE_SCENE_H

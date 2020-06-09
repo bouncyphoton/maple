@@ -4,8 +4,8 @@
 #include <glm/glm.hpp>
 
 struct Material {
-    glm::vec3 diffuseColor;
-    glm::vec3 emissiveColor;
+    glm::vec4 diffuse;
+    glm::vec4 emissive;
 };
 
 #endif //MAPLE_MATERIAL_H
