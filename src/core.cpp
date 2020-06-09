@@ -64,7 +64,7 @@ void Core::fatal(const std::string &msg) {
 
 void Core::init() {
     state.camera.position = glm::vec3(0, 1, 2);
-    state.camera.lookDir = glm::vec3(0, 0, -1);
+    state.camera.lookDir = glm::vec3(0, 0, 1);
     state.camera.fovRadians = glm::half_pi<f32>();
     state.camera.nearPlane = 0.001f;
     state.camera.farPlane = 100.0f;
