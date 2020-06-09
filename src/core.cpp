@@ -73,12 +73,12 @@ void Core::init() {
     m_renderer.init();
 
     info("Loading assets...");
-    assetManager.loadModelFromObj("../assets/CornellBox/", "CornellBox-Original.obj");
+    state.scene.load("../assets/CornellBox/", "CornellBox-Original.obj");
     info("Done!");
 }
 
 void Core::cleanup() {
-    assetManager.destroy();
+    state.scene.destroy();
     m_renderer.destroy();
     m_platform.destroy();
 }

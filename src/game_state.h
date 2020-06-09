@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "camera.h"
+#include "scene.h"
 
 // Events from the platform abstraction to the application
 enum PlatformEventsEnum : u32 {
@@ -17,6 +18,7 @@ struct GameState {
     u32 platformEventFlags = 0;
 
     Camera camera = {};
+    Scene scene = {};
 };
 
 #endif //MAPLE_GAME_STATE_H

@@ -1,22 +1,8 @@
 #version 450 core
-const float EPSILON = 1e-4;
-
-layout (local_size_x = 1, local_size_y = 1) in;
-layout (rgba32f, binding = 0) uniform image2D oImage;
-
-uniform vec2 uResolution;
-
-uniform struct {
-    vec3 position;
-    vec3 lowerLeft;
-    vec3 upperRight;
-} uCamera;
-
-uniform int uFrameNumber;
 
 struct Vertex {
-    vec3 position;
-    vec3 normal;
+    vec4 position;
+    vec4 normal;
 };
 
 struct Ray {
@@ -34,6 +20,25 @@ struct IntersectionInfo {
     vec3 normal;
     Material mat;
 };
+
+const float EPSILON = 1e-4;
+
+layout (local_size_x = 1, local_size_y = 1) in;
+layout (rgba32f, binding = 0) uniform image2D oImage;
+layout (std430, binding = 1) buffer vertexBuffer
+{
+    Vertex vertices[];
+};
+
+uniform vec2 uResolution;
+
+uniform struct {
+    vec3 position;
+    vec3 lowerLeft;
+    vec3 upperRight;
+} uCamera;
+
+uniform int uFrameNumber;
 
 uint rngState = 0;
 
@@ -84,34 +89,13 @@ vec3 linearToSrgb(vec3 x) {
     );
 }
 
-IntersectionInfo intersectSphere(Ray ray, vec3 center, float radius, vec3 diffuse, vec3 emissive) {
-    IntersectionInfo isect;
-
-    vec3 oc = ray.origin - center;
-    float a = dot(ray.dir, ray.dir);
-    float b = 2 * dot(oc, ray.dir);
-    float c = dot(oc, oc) - radius * radius;
-    float discriminant = b * b - 4 * a * c;
-
-    if (discriminant > 0) {
-        isect.t = (-b - sqrt(discriminant)) / (2 * a);
-        isect.normal = ((isect.t * ray.dir + ray.origin) - center) / radius;
-        isect.mat.diffuse = diffuse;
-        isect.mat.emissive = emissive;
-    } else {
-        isect.t = -1;
-    }
-
-    return isect;
-}
-
 // Möller–Trumbore intersection algorithm
-IntersectionInfo intersectTriangle(Ray ray, Vertex vertices[3], vec3 diffuse, vec3 emissive) {
+IntersectionInfo intersectTriangle(Ray ray, Vertex v0, Vertex v1, Vertex v2, vec3 diffuse, vec3 emissive) {
     IntersectionInfo isect;
     isect.t = -1;
 
-    vec3 e1 = vertices[1].position - vertices[0].position;
-    vec3 e2 = vertices[2].position - vertices[0].position;
+    vec3 e1 = v1.position.xyz - v0.position.xyz;
+    vec3 e2 = v2.position.xyz - v0.position.xyz;
     vec3 h = cross(ray.dir, e2);
     float a = dot(e1, h);
 
@@ -122,7 +106,7 @@ IntersectionInfo intersectTriangle(Ray ray, Vertex vertices[3], vec3 diffuse, ve
 
     // calculate u
     float f = 1.0 / a;
-    vec3 s = ray.origin - vertices[0].position;
+    vec3 s = ray.origin - v0.position.xyz;
     float u = f * dot(s, h);
 
     // check if u is on triangle
@@ -144,7 +128,7 @@ IntersectionInfo intersectTriangle(Ray ray, Vertex vertices[3], vec3 diffuse, ve
     if (t > EPSILON) {
         isect.t = t;
 
-        isect.normal = (u * vertices[0].normal) + (v * vertices[1].normal) + ((1 - u - v) * vertices[2].normal);
+        isect.normal = normalize((u * v0.normal.xyz) + (v * v1.normal.xyz) + ((1 - u - v) * v2.normal.xyz));
 
         isect.mat.diffuse = diffuse;
         isect.mat.emissive = emissive;
@@ -155,72 +139,22 @@ IntersectionInfo intersectTriangle(Ray ray, Vertex vertices[3], vec3 diffuse, ve
 
 IntersectionInfo intersect(Ray ray) {
     IntersectionInfo ret;
+    ret.t = -1;
 
-    // temp scene intersection
+    // TODO: proper material setting
 
     vec3 white = vec3(0.725, 0.71, 0.68);
-    vec3 red = vec3(0.63, 0.065, 0.05);
-    vec3 green = vec3(0.14, 0.45, 0.091);
+    vec3 unlit = vec3(0);
+    vec3 lit = vec3(17, 12, 4);
 
-    // floor
-    ret = intersectSphere(ray, vec3(-0, -100, 0), 100, white, vec3(0));
+    // TODO: What if a ray hits the back of a triangle?
 
-    // half of the area light
-    IntersectionInfo i = intersectTriangle(ray, Vertex[3](
-        Vertex( vec3(-0.24, 1.98, -0.22), vec3(0, -1, 0) ),
-        Vertex( vec3(0.23, 1.98, -0.22), vec3(0, -1, 0) ),
-        Vertex( vec3(0.23, 1.98, 0.16), vec3(0, -1, 0) )
-    ), vec3(0.78), vec3(17, 12, 4));
-    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-        ret = i;
-    }
-
-    // another glowy triangle
-    float scale = 0.1;
-    vec3 offset = vec3(-0.1, 0.1, 0.8);
-    i = intersectTriangle(ray, Vertex[3](
-        Vertex( vec3(0, 0, 1) * scale + offset, normalize(vec3(1, 1, -1)) ),
-        Vertex( vec3(1, 0, 0) * scale + offset, normalize(vec3(1, 1, -1)) ),
-        Vertex( vec3(0, 1, 0) * scale + offset, normalize(vec3(1, 1, -1)) )
-    ), vec3(0.78), vec3(2, 4, 20));
-    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-        ret = i;
-    }
-
-    // left red "wall" sphere
-    i = intersectSphere(ray, vec3(101, 1, 0), 100, red, vec3(0));
-    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-        ret = i;
-    }
-
-    // right green "wall" sphere
-    i = intersectSphere(ray, vec3(-101, 1, 0), 100, green, vec3(0));
-    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-        ret = i;
-    }
-
-    // back white "wall" sphere
-    i = intersectSphere(ray, vec3(0, 1, -101), 100, white, vec3(0));
-    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-        ret = i;
-    }
-
-    // white ceiling sphere
-    i = intersectSphere(ray, vec3(0, 102, 0), 100, white, vec3(0));
-    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-        ret = i;
-    }
-
-    // right diffuse white sphere
-    i = intersectSphere(ray, vec3(-0.3, 0.25, 0.5), 0.25, white, vec3(0));
-    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-        ret = i;
-    }
-
-    // left diffuse white sphere
-    i = intersectSphere(ray, vec3(0.3, 0.5, -0.3), 0.5, white, vec3(0));
-    if (i.t >= 0 && i.t < ret.t || ret.t < 0) {
-        ret = i;
+    for (uint i = 0; i < vertices.length(); i += 3) {
+        IntersectionInfo current = intersectTriangle(ray, vertices[i+0], vertices[i+1], vertices[i+2], white, 
+            vertices[i].position.y == 1.98 ? lit : unlit);
+        if (current.t >= 0 && (current.t < ret.t || ret.t < 0)) {
+            ret = current;
+        }
     }
 
     return ret;
@@ -235,7 +169,7 @@ vec3 trace(Ray ray) {
         IntersectionInfo isect = intersect(ray);
 
         if (isect.t < 0) {
-            return vec3(0);
+            break;
         }
 
         vec3 diffuse = isect.mat.diffuse;

@@ -50,30 +50,30 @@ void Renderer::render() {
 
     // Draw mesh
     if (!pathTracingEnabled) {
-        m_meshShader.bind();
-        // set view and projection matrices
-        glm::mat4 view = glm::lookAt(
-                camera.position,
-                camera.position + camera.lookDir,
-                glm::vec3(0, 1, 0)
-        );
-        glm::mat4 proj = glm::perspective(camera.fovRadians, aspectRatio, camera.nearPlane, camera.farPlane);
-        m_meshShader.setMat4("uViewProjectionMatrix", proj * view);
-
-        // TODO: make a better system for getting meshes out of a loaded model
-        std::vector<Mesh> &meshes = core->assetManager.getModel("../assets/CornellBox/CornellBox-Original.obj").meshes;
-
-        for (auto &mesh : meshes) {
-            glm::mat4 modelMatrix = glm::mat4(1);
-            glm::mat4 normalMatrix = glm::transpose(glm::inverse(modelMatrix));
-
-            m_meshShader.setVec3("uDiffuseColor", mesh.material.diffuseColor);
-            m_meshShader.setVec3("uEmissionColor", mesh.material.emissiveColor);
-            m_meshShader.setMat4("uModelMatrix", modelMatrix);
-            m_meshShader.setMat4("uNormalMatrix", normalMatrix);
-
-            mesh.draw();
-        }
+//        m_meshShader.bind();
+//        // set view and projection matrices
+//        glm::mat4 view = glm::lookAt(
+//                camera.position,
+//                camera.position + camera.lookDir,
+//                glm::vec3(0, 1, 0)
+//        );
+//        glm::mat4 proj = glm::perspective(camera.fovRadians, aspectRatio, camera.nearPlane, camera.farPlane);
+//        m_meshShader.setMat4("uViewProjectionMatrix", proj * view);
+//
+//        // TODO: make a better system for getting meshes out of a loaded model
+//        std::vector<Mesh> &meshes = core->assetManager.getModel("../assets/CornellBox/CornellBox-Original.obj").meshes;
+//
+//        for (auto &mesh : meshes) {
+//            glm::mat4 modelMatrix = glm::mat4(1);
+//            glm::mat4 normalMatrix = glm::transpose(glm::inverse(modelMatrix));
+//
+//            m_meshShader.setVec3("uDiffuseColor", mesh.material.diffuseColor);
+//            m_meshShader.setVec3("uEmissionColor", mesh.material.emissiveColor);
+//            m_meshShader.setMat4("uModelMatrix", modelMatrix);
+//            m_meshShader.setMat4("uNormalMatrix", normalMatrix);
+//
+//            mesh.draw();
+//        }
     }
 
     // Path trace
@@ -101,6 +101,10 @@ void Renderer::render() {
         if (m_frameNumber % 100 == 0) {
             core->info(std::to_string(m_frameNumber) + "spp");
         }
+
+        // Set scene data
+        // TODO: Don't do this every frame
+        core->state.scene.bindSsbo(1);
 
         // Dispatch compute shader and wait
         m_pathTraceShader.dispatchCompute(core->state.frameWidth, core->state.frameHeight, 1);
