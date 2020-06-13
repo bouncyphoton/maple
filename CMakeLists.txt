@@ -10,4 +10,9 @@ add_executable(maple third-party/gl3w/gl3w.c src/main.cpp src/core.cpp src/core.
 target_link_libraries(maple ${SDL2_LIBRARY})
 target_include_directories(maple PUBLIC ${SDL2_INCLUDE_DIR} third-party/gl3w/include third-party/glm third-party/tinyobjloader)
 
+# For linux
+if (CMAKE_DL_LIBS)
+    target_link_libraries(maple ${CMAKE_DL_LIBS})
+endif()
+
 # Don't forget the SDL2 DLL :)
