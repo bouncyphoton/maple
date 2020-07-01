@@ -2,6 +2,7 @@
 #include <glm/gtc/constants.hpp>
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 
 static Core core_local;
 Core *core = &core_local;
@@ -31,11 +32,18 @@ void Core::run() {
         m_platform.swapBuffers();
 
         // performance
+        f32 frameTime = m_platform.getFrameTime();
         ++numFrames;
-        time += m_platform.getFrameTime();
+        time += frameTime;
 
         if (time > 1000) {
-            info("average frametime: " + std::to_string(time / numFrames));
+            std::ostringstream perfSummary;
+            u32 numPartitions = state.partitionsPerSide * state.partitionsPerSide;
+            perfSummary << "performance summary\n";
+            perfSummary << "- avg frametime:  " << (time / numFrames) << "ms\n";
+            perfSummary << "- samples/pixel:  " << m_renderer.getFrameNumber() << "\n";
+            perfSummary << "- samples/second: " << (1000.0f / (numPartitions * frameTime));
+            info(perfSummary.str());
             time = 0;
             numFrames = 0;
         }

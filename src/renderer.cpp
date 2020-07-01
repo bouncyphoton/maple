@@ -42,42 +42,22 @@ void Renderer::destroy() {
 void Renderer::render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-//    bool pathTracingEnabled = (u32)(SDL_GetTicks() / 1000) % 2 == 0;
-    bool pathTracingEnabled = true;
-
     Camera &camera = core->state.camera;
     f32 aspectRatio = (f32) core->state.frameWidth / (f32) core->state.frameHeight;
 
-    // Draw mesh
-    if (!pathTracingEnabled) {
-//        m_meshShader.bind();
-//        // set view and projection matrices
-//        glm::mat4 view = glm::lookAt(
-//                camera.position,
-//                camera.position + camera.lookDir,
-//                glm::vec3(0, 1, 0)
-//        );
-//        glm::mat4 proj = glm::perspective(camera.fovRadians, aspectRatio, camera.nearPlane, camera.farPlane);
-//        m_meshShader.setMat4("uViewProjectionMatrix", proj * view);
-//
-//        // TODO: make a better system for getting meshes out of a loaded model
-//        std::vector<Mesh> &meshes = core->assetManager.getModel("../assets/CornellBox/CornellBox-Original.obj").meshes;
-//
-//        for (auto &mesh : meshes) {
-//            glm::mat4 modelMatrix = glm::mat4(1);
-//            glm::mat4 normalMatrix = glm::transpose(glm::inverse(modelMatrix));
-//
-//            m_meshShader.setVec3("uDiffuseColor", mesh.material.diffuseColor);
-//            m_meshShader.setVec3("uEmissionColor", mesh.material.emissiveColor);
-//            m_meshShader.setMat4("uModelMatrix", modelMatrix);
-//            m_meshShader.setMat4("uNormalMatrix", normalMatrix);
-//
-//            mesh.draw();
-//        }
+    u32 totalPartitions = core->state.partitionsPerSide * core->state.partitionsPerSide;
+    // TODO: make sure we get the whole thing
+    u32 width = core->state.frameWidth / core->state.partitionsPerSide;
+    u32 height = core->state.frameHeight / core->state.partitionsPerSide;
+    u32 xOffset = (m_partitionIdx % core->state.partitionsPerSide) * width;
+    u32 yOffset = (m_partitionIdx / core->state.partitionsPerSide) * height;
+    m_partitionIdx = (m_partitionIdx + 1) % totalPartitions;
+    if (m_partitionIdx == 0) {
+        ++m_frameNumber;
     }
 
     // Path trace
-    if (pathTracingEnabled) {
+    {
         m_pathTraceShader.bind();
 
         // Calculate lower left and upper right vectors, adapted from Peter Shirley's "Ray Tracing in One Weekend"
@@ -92,26 +72,23 @@ void Renderer::render() {
 
         // Set shader uniforms
         m_pathTraceShader.setVec2("uResolution", glm::vec2(core->state.frameWidth, core->state.frameHeight));
+        m_pathTraceShader.setVec2("uOffset", glm::vec2(xOffset, yOffset));
         m_pathTraceShader.setVec3("uCamera.position", core->state.camera.position);
         m_pathTraceShader.setVec3("uCamera.lowerLeft", lowerLeft);
         m_pathTraceShader.setVec3("uCamera.upperRight", upperRight);
         m_pathTraceShader.setInt("uFrameNumber", m_frameNumber);
-        ++m_frameNumber;
-
-        if (m_frameNumber % 100 == 0) {
-            core->info(std::to_string(m_frameNumber) + "spp");
-        }
 
         // Set scene data
         // TODO: Don't do this every frame
         core->state.scene.bind();
 
         // Dispatch compute shader and wait
-        m_pathTraceShader.dispatchCompute(core->state.frameWidth, core->state.frameHeight, 1);
+        m_pathTraceShader.dispatchCompute(width, height, 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    }
 
-        // Draw texture to screen via fullscreen texture shader
-
+    // Draw texture to screen via fullscreen texture shader
+    {
         // Set state
         glDepthMask(GL_FALSE);
         glDepthFunc(GL_ALWAYS);

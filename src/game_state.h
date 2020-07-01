@@ -13,6 +13,8 @@ enum PlatformEventsEnum : u32 {
 struct GameState {
     u32 frameWidth = 800;
     u32 frameHeight = 600;
+    u32 partitionsPerSide = 16;
+    bool vsyncEnabled = false;
 
     // Bitfield for platform events, see PlatformEventsEnum
     u32 platformEventFlags = 0;

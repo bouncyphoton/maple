@@ -31,8 +31,8 @@ void Platform::init() {
         core->fatal("Failed to initialize gl3w");
     }
 
-    // Disable v-sync
-    SDL_GL_SetSwapInterval(0);
+    // Set vsync
+    SDL_GL_SetSwapInterval(core->state.vsyncEnabled);
 
     m_lastUpdate = std::chrono::system_clock::now();
 }

@@ -45,6 +45,7 @@ layout (std430, binding = 3) buffer meshBuffer
 };
 
 uniform vec2 uResolution;
+uniform vec2 uOffset;
 
 uniform struct {
     vec3 position;
@@ -97,9 +98,9 @@ float linearToSrgbComponent(float x) {
 
 vec3 linearToSrgb(vec3 x) {
     return vec3(
-	    linearToSrgbComponent(x.x),
-    	linearToSrgbComponent(x.y),
-    	linearToSrgbComponent(x.z)
+        linearToSrgbComponent(x.x),
+        linearToSrgbComponent(x.y),
+        linearToSrgbComponent(x.z)
     );
 }
 
@@ -198,7 +199,7 @@ vec3 trace(Ray ray) {
 }
 
 void main() {
-    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy) + ivec2(uOffset);
 
     // seed rng
     // TODO: better random numbers
