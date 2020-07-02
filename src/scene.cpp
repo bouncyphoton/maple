@@ -5,6 +5,7 @@
 
 #include "tiny_obj_loader.h"
 #include <GL/gl3w.h>
+#include <glm/glm.hpp>
 
 void Scene::load(const char *directory, const char *filename) {
     tinyobj::attrib_t attrib;
@@ -12,6 +13,9 @@ void Scene::load(const char *directory, const char *filename) {
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
     std::string objPath = std::string(directory) + filename;
+
+    glm::vec3 min(INFINITY);
+    glm::vec3 max(-INFINITY);
 
     bool result = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, objPath.c_str(), directory);
     if (!warn.empty()) {
@@ -76,6 +80,9 @@ void Scene::load(const char *directory, const char *filename) {
                         0
                 );
 
+                min = glm::min(min, glm::vec3(vertices.back().position));
+                max = glm::max(max, glm::vec3(vertices.back().position));
+
                 // set normal
                 if (hasNormals) {
                     vertices.back().normal = glm::vec4(
@@ -110,6 +117,9 @@ void Scene::load(const char *directory, const char *filename) {
         m_meshes[i].numVertices = meshVertices[i].size();
         m_vertices.insert(m_vertices.end(), meshVertices[i].begin(), meshVertices[i].end());
     }
+
+    core->info("min: " + std::to_string(min.x) + ", " + std::to_string(min.y) + ", " + std::to_string(min.z));
+    core->info("max: " + std::to_string(max.x) + ", " + std::to_string(max.y) + ", " + std::to_string(max.z));
 
     // Generate vertex buffer
     glGenBuffers(1, &m_vertexBuffer);
