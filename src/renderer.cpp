@@ -64,10 +64,10 @@ void Renderer::render() {
         f32 halfHeight = tan(camera.fovRadians * 0.5f);
         f32 halfWidth = aspectRatio * halfHeight;
         glm::vec3 front = glm::normalize(camera.lookDir);
-        glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), front));
-        glm::vec3 up = glm::cross(front, right);
+        glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), -front));
+        glm::vec3 up = glm::cross(-front, right);
 
-        glm::vec3 lowerLeft = camera.position - halfWidth * right - halfHeight * up - front;
+        glm::vec3 lowerLeft = camera.position - halfWidth * right - halfHeight * up + front;
         glm::vec3 upperRight = lowerLeft + halfWidth * 2.0f * right + halfHeight * 2.0f * up;
 
         // Set shader uniforms
