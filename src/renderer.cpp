@@ -24,6 +24,7 @@ void Renderer::init() {
 
     // Set/reset frame number
     m_frameNumber = 0;
+    m_partitionIdx = 0;
 
     // Initialize shaders
     m_fullscreenTextureShader.init("../assets/shaders/fullscreen.vert", "../assets/shaders/fullscreen.frag");
@@ -52,9 +53,6 @@ void Renderer::render() {
     u32 xOffset = (m_partitionIdx % core->state.partitionsPerSide) * width;
     u32 yOffset = (m_partitionIdx / core->state.partitionsPerSide) * height;
     m_partitionIdx = (m_partitionIdx + 1) % totalPartitions;
-    if (m_partitionIdx == 0) {
-        ++m_frameNumber;
-    }
 
     // Path trace
     {
@@ -103,6 +101,10 @@ void Renderer::render() {
         glDepthFunc(GL_LESS);
         glDepthMask(GL_TRUE);
     }
+
+    if (m_partitionIdx == 0) {
+        ++m_frameNumber;
+    }
 }
 
 void Renderer::resize() {
@@ -117,4 +119,5 @@ void Renderer::resize() {
                  0, GL_RGBA, GL_FLOAT, nullptr);
     glBindTexture(GL_TEXTURE_2D, previouslyBoundTexture);
     m_frameNumber = 0;
+    m_partitionIdx = 0;
 }
